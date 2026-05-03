@@ -182,7 +182,7 @@ class ActivityMain : ActivityBase() {
             override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
             override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
         })
-        setInitialTab(intent?.getIntExtra(EXTRA_SELECT_TAB, TAB_HOME) ?: TAB_HOME)
+        setInitialTab(intent.getIntExtra(EXTRA_SELECT_TAB, TAB_HOME))
 
         if (CheckRootStatus.lastCheckResult) {
             try {
@@ -253,9 +253,9 @@ class ActivityMain : ActivityBase() {
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setInitialTab(intent?.getIntExtra(EXTRA_SELECT_TAB, TAB_HOME) ?: TAB_HOME)
+        setInitialTab(intent.getIntExtra(EXTRA_SELECT_TAB, TAB_HOME))
     }
 
     private fun setInitialTab(index: Int) {
