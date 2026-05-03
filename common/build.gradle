@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace "com.omarea.common"
-    compileSdk 35
+    compileSdk 37
 
     buildFeatures {
         viewBinding true
@@ -40,5 +40,5 @@ android {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.0.21"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.21"
 }
