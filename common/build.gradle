@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace "com.omarea.common"
-    compileSdk 36
+    compileSdk 35
 
     buildFeatures {
         viewBinding true
