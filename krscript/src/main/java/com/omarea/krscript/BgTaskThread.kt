@@ -41,8 +41,8 @@ class BgTaskThread(private var process: Process) : Thread() {
             putExtra("id", notificationID)
         }, PendingIntent.FLAG_UPDATE_CURRENT)
         private val receiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent != null && intent.hasExtra("id")) {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.hasExtra("id")) {
                     if (intent.getIntExtra("id", 0) == notificationID) {
                         forceStop?.run()
                     }

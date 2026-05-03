@@ -18,10 +18,8 @@ import com.omarea.data.EventType
 class ScreenState(private var context: Context) : BroadcastReceiver() {
     private var handler = Handler(Looper.getMainLooper())
     private var lastChange = 0L
-    override fun onReceive(p0: Context?, p1: Intent?) {
-        if (p1 == null) {
-            return
-        }
+    override fun onReceive(p0: Context, p1: Intent) {
+        // intent is non-null per BroadcastReceiver contract
         val pendingResult = goAsync()
 
         when (p1.action) {
@@ -41,7 +39,7 @@ class ScreenState(private var context: Context) : BroadcastReceiver() {
                     handler.postDelayed({
                         if (ms == lastChange) {
                             try {
-                                val mKeyguardManager = p0!!.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+                                val mKeyguardManager = p0.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
                                 if (!(mKeyguardManager.isKeyguardLocked || mKeyguardManager.isDeviceLocked)) {
                                     EventBus.publish(EventType.SCREEN_ON)
                                 }

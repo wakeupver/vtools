@@ -198,7 +198,7 @@ class ActionPage : ActivityBase() {
     private var menuOptions: ArrayList<PageMenuOption>? = null
 
     // 右上角菜单的创建
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
         if (menuOptions == null) {
             menuOptions = PageMenuLoader(applicationContext, currentPageConfig).load()
         }
