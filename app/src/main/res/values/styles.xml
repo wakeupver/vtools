@@ -20,8 +20,8 @@
         <item name="android:windowTranslucentNavigation">false</item>
         <item name="android:windowAnimationStyle">@style/activityAnim</item>
         <item name="android:windowBackground">@color/window_background_light</item>
-        <item name="android:statusBarColor">?android:windowBackground</item>
-        <item name="android:navigationBarColor">?android:windowBackground</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
@@ -39,8 +39,8 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowTranslucentStatus">false</item>
         <item name="android:windowTranslucentNavigation">false</item>
-        <item name="android:statusBarColor">@color/cardBgDark</item>
-        <item name="android:navigationBarColor">@color/cardBgDark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="colorPrimary">@android:color/background_dark</item>
         <item name="colorPrimaryDark">@android:color/background_dark</item>
         <item name="android:windowBackground">@color/cardBgDark</item>

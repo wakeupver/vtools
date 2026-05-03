@@ -85,35 +85,35 @@
     <string name="menu_home">Overview</string>
     <string name="menu_scene_mode">Scene mode</string>
     <string name="menu_app_scene">App scene</string>
-    <string name="menu_system_scene">System scene </string>
+    <string name="menu_system_scene">System Scene</string>
     <string name="menu_auto_click">Auto click</string>
     <string name="menu_cpu_modes">CPU modes</string>
     <string name="menu_freeze">App freeze</string>
     <string name="menu_battery_stats">Battery stats</string>
     <string name="menu_battery_stats_desc">View the power consumption (current) data recorded during application use</string>
-    <string name="menu_core_control">CPU control</string>
-    <string name="menu_sundry">Misc </string>
+    <string name="menu_core_control">CPU Control</string>
+    <string name="menu_sundry">Misc</string>
     <string name="menu_additional">Additional</string>
-    <string name="menu_applictions">App mgr</string>
-    <string name="menu_swap">SWAP menu</string>
+    <string name="menu_applictions">App Manager</string>
+    <string name="menu_swap">SWAP</string>
     <string name="menu_battery">Charge ctrl</string>
     <string name="menu_charge">Charge stats</string>
-    <string name="menu_power_utilization">Power util</string>
+    <string name="menu_power_utilization">Power Stats</string>
     <string name="menu_custom_command">Custom command</string>
-    <string name="menu_processes">Process mgr </string>
-    <string name="menu_modules">Magisk mgr</string>
-    <string name="menu_fps_chart">FPS record</string>
-    <string name="menu_app_magisk">Extra Module</string>
+    <string name="menu_processes">Process Mgr</string>
+    <string name="menu_modules">Magisk Modules</string>
+    <string name="menu_fps_chart">FPS Monitor</string>
+    <string name="menu_app_magisk">Extra Modules</string>
     <string name="menu_gesture">Gesture</string>
     <string name="menu_filter">Screen filter</string>
-    <string name="menu_img">Backup restore </string>
+    <string name="menu_img">Backup <string name="menu_img">Backup restore </string>amp; Restore</string>
     <string name="menu_qq">QQ</string>
     <string name="menu_menu_title">Feedback</string>
     <string name="menu_share">Share app</string>
     <string name="menu_miui_thermal">MIUI thermal</string>
-    <string name="menu_section_performance">Equipment performance</string>
-    <string name="menu_section_power">Charging power consumption</string>
-    <string name="menu_section_advanced">Advanced Features</string>
+    <string name="menu_section_performance">Performance</string>
+    <string name="menu_section_power">Power &amp; Battery</string>
+    <string name="menu_section_advanced">Advanced</string>
     <string name="home_alive">Alive</string>
     <string name="home_official_site">Official website</string>
 
@@ -945,4 +945,5 @@
 
     <string name="miui_thermal_desc">Click the menu in the upper right corner, select and edit the temperature control file, click Save after editing ~\n\nNote: With the Android system constantly updated, to modify the system partition becomes more and more difficult, may be modified can not be successfully saved, or reboot that is automatically restored, it is recommended to use magisk module to complete the temperature control modification! \n\n temperature control file is usually in the /system/etc or /vendor/etc directory, the name begins with "thermal", suffix ".conf"</string>
     <string name="monitor_process_unsupported">Process Manager is not compatible with your phone yet!</string>
+    <string name="title_settings">Settings</string>
 </resources>
