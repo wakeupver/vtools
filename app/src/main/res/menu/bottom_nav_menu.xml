@@ -2,14 +2,14 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/tab_home"
-        android:icon="@drawable/app_home"
+        android:icon="@drawable/ic_nav_home"
         android:title="@string/app_home" />
     <item
         android:id="@+id/tab_nav"
-        android:icon="@drawable/app_menu"
+        android:icon="@drawable/ic_nav_menu"
         android:title="@string/app_nav" />
     <item
         android:id="@+id/tab_tuner"
-        android:icon="@drawable/app_settings"
+        android:icon="@drawable/ic_nav_tune"
         android:title="@string/app_tuner" />
 </menu>
