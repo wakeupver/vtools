@@ -130,7 +130,7 @@ dependencies {
     debugImplementation 'androidx.compose.ui:ui-tooling'
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
 
-    implementation 'top.yukonga.miuix.kmp:miuix-ui:0.9.0'
+    implementation 'androidx.compose.material:material-icons-extended'
 
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:2.3.20"

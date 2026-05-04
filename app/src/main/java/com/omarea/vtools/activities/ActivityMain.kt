@@ -10,13 +10,13 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.LayoutInflater
-import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.widget.Toolbar
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
 import com.omarea.Scene
 import com.omarea.common.shared.MagiskExtend
 import com.omarea.common.shell.KeepShellPublic
@@ -25,24 +25,23 @@ import com.omarea.common.shell.RootFile
 import com.omarea.common.ui.DialogHelper
 import com.omarea.permissions.CheckRootStatus
 import com.omarea.store.SpfConfig
-import com.omarea.ui.TabIconHelper2
 import com.omarea.utils.ElectricityUnit
 import com.omarea.utils.Update
 import com.omarea.vtools.R
+import com.omarea.vtools.databinding.ActivityMainBinding
 import com.omarea.vtools.dialogs.DialogMonitor
 import com.omarea.vtools.dialogs.DialogPower
 import com.omarea.vtools.fragments.FragmentCpuModes
 import com.omarea.vtools.fragments.FragmentHome
 import com.omarea.vtools.fragments.FragmentNav
 import com.omarea.vtools.fragments.FragmentNotRoot
-import com.omarea.vtools.databinding.ActivityMainBinding
 import java.util.ArrayDeque
 
 class ActivityMain : ActivityBase() {
     companion object {
         const val EXTRA_SELECT_TAB = "select_tab"
-        const val TAB_NAV = 0
-        const val TAB_HOME = 1
+        const val TAB_HOME = 0
+        const val TAB_NAV  = 1
         const val TAB_TUNER = 2
         var lastSelectedTab = TAB_HOME
     }
@@ -52,15 +51,25 @@ class ActivityMain : ActivityBase() {
     private val tabHistory = ArrayDeque<Int>()
     private var suppressTabHistory = false
 
+    // Tab id → pager index
+    private val navIdToIndex = mapOf(
+        R.id.tab_home  to TAB_HOME,
+        R.id.tab_nav   to TAB_NAV,
+        R.id.tab_tuner to TAB_TUNER
+    )
+    private val indexToNavId = mapOf(
+        TAB_HOME  to R.id.tab_home,
+        TAB_NAV   to R.id.tab_nav,
+        TAB_TUNER to R.id.tab_tuner
+    )
+
     private class ThermalCheckThread(private var context: Activity) : Thread() {
         private fun deleteThermalCopyWarn(onYes: Runnable) {
             Scene.post {
                 if (!context.isFinishing) {
                     val view = LayoutInflater.from(context).inflate(R.layout.dialog_delete_thermal, null)
                     val dialog = DialogHelper.customDialog(context, view)
-                    view.findViewById<View>(R.id.btn_no).setOnClickListener {
-                        dialog.dismiss()
-                    }
+                    view.findViewById<View>(R.id.btn_no).setOnClickListener { dialog.dismiss() }
                     view.findViewById<View>(R.id.btn_yes).setOnClickListener {
                         dialog.dismiss()
                         onYes.run()
@@ -72,36 +81,28 @@ class ActivityMain : ActivityBase() {
 
         override fun run() {
             sleep(500)
-            if (
-                    MagiskExtend.magiskSupported() &&
-                    KernelProrp.getProp("${MagiskExtend.MAGISK_PATH}system/vendor/etc/thermal.current.ini") != ""
-            ) {
+            if (MagiskExtend.magiskSupported() &&
+                KernelProrp.getProp("${MagiskExtend.MAGISK_PATH}system/vendor/etc/thermal.current.ini") != "") {
                 when {
                     RootFile.list("/data/thermal/config").size > 0 -> {
                         deleteThermalCopyWarn {
                             KeepShellPublic.doCmdSync(
-                                    "chattr -R -i /data/thermal 2> /dev/null\n" +
-                                            "rm -rf /data/thermal 2> /dev/null\n" +
-                                            "sync;svc power reboot || reboot;"
-                            )
+                                "chattr -R -i /data/thermal 2> /dev/null\n" +
+                                "rm -rf /data/thermal 2> /dev/null\n" +
+                                "sync;svc power reboot || reboot;")
                         }
                     }
                     RootFile.list("/data/vendor/thermal/config").size > 0 -> {
-                        if (
-                                RootFile.fileEquals(
-                                        "/data/vendor/thermal/config/thermal-normal.conf",
-                                        MagiskExtend.getMagiskReplaceFilePath("/system/vendor/etc/thermal-normal.conf")
-                                )
-                        ) {
-                            // Scene.toast("文件相同，跳过温控清理", Toast.LENGTH_SHORT)
+                        if (RootFile.fileEquals(
+                                "/data/vendor/thermal/config/thermal-normal.conf",
+                                MagiskExtend.getMagiskReplaceFilePath("/system/vendor/etc/thermal-normal.conf"))) {
                             return
                         } else {
                             deleteThermalCopyWarn {
                                 KeepShellPublic.doCmdSync(
-                                        "chattr -R -i /data/vendor/thermal 2> /dev/null\n" +
-                                                "rm -rf /data/vendor/thermal 2> /dev/null\n" +
-                                                "sync;svc power reboot || reboot;"
-                                )
+                                    "chattr -R -i /data/vendor/thermal 2> /dev/null\n" +
+                                    "rm -rf /data/vendor/thermal 2> /dev/null\n" +
+                                    "sync;svc power reboot || reboot;")
                             }
                         }
                     }
@@ -119,104 +120,88 @@ class ActivityMain : ActivityBase() {
             val intent = Intent(this.applicationContext, ActivityStartSplash::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
             intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
-            // intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
             startActivity(intent)
             finish()
             return
         }
 
-        /*
-        StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
-                .detectDiskReads()
-                .detectDiskWrites()
-                .detectNetwork()   // or .detectAll() for all detectable problems
-                .penaltyLog()
-                .build());
-        StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder()
-                .detectLeakedSqlLiteObjects()
-                .detectLeakedClosableObjects()
-                .penaltyLog()
-                .penaltyDeath()
-                .detectAll()
-                .build());
-        */
-
         globalSPF = getSharedPreferences(SpfConfig.GLOBAL_SPF, Context.MODE_PRIVATE)
         if (!globalSPF.contains(SpfConfig.GLOBAL_SPF_CURRENT_NOW_UNIT)) {
-            globalSPF.edit().putInt(SpfConfig.GLOBAL_SPF_CURRENT_NOW_UNIT, ElectricityUnit().getDefaultElectricityUnit(this)).apply()
+            globalSPF.edit()
+                .putInt(SpfConfig.GLOBAL_SPF_CURRENT_NOW_UNIT, ElectricityUnit().getDefaultElectricityUnit(this))
+                .apply()
         }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(true)
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.tabBar) { view, insets ->
-            val topInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
-            view.setPadding(view.paddingLeft, topInset, view.paddingRight, view.paddingBottom)
-            insets
+        // Toolbar action menu clicks
+        binding.toolbar.setOnMenuItemClickListener { item: MenuItem ->
+            when (item.itemId) {
+                R.id.action_graph    -> { actionGraph(); true }
+                R.id.action_power    -> { DialogPower(this).showPowerMenu(); true }
+                R.id.action_settings -> {
+                    startActivity(Intent(applicationContext, ActivityOtherSettings::class.java))
+                    true
+                }
+                else -> false
+            }
         }
 
-        val tabIconHelper2 = TabIconHelper2(binding.tabList, binding.tabContent, this, R.layout.list_item_tab2)
-        tabIconHelper2.newTabSpec(getString(R.string.app_nav), getDrawable(R.drawable.app_menu)!!, FragmentNav.createPage(themeMode))
-        tabIconHelper2.newTabSpec(getString(R.string.app_home), getDrawable(R.drawable.app_home)!!, (if (CheckRootStatus.lastCheckResult) {
-            FragmentHome()
-        } else {
-            FragmentNotRoot()
-        }))
-        tabIconHelper2.newTabSpec(getString(R.string.app_tuner), getDrawable(R.drawable.app_settings)!!, FragmentCpuModes())
-        binding.tabContent.adapter = tabIconHelper2.adapter
-        binding.tabList.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
-                if (suppressTabHistory) {
-                    return
-                }
-                val position = tab?.position ?: return
-                if (tabHistory.peekLast() != position) {
-                    tabHistory.addLast(position)
-                }
-                lastSelectedTab = position
-            }
+        // Build page fragments (order: Home=0, Nav=1, Tuner=2)
+        val fragments: List<Fragment> = listOf(
+            if (CheckRootStatus.lastCheckResult) FragmentHome() else FragmentNotRoot(),
+            FragmentNav.createPage(themeMode),
+            FragmentCpuModes()
+        )
 
-            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
-            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+        binding.tabContent.adapter = object : FragmentStateAdapter(this as FragmentActivity) {
+            override fun getItemCount() = fragments.size
+            override fun createFragment(position: Int) = fragments[position]
+        }
+        binding.tabContent.isUserInputEnabled = false  // disable swipe (tabs handle navigation)
+        binding.tabContent.offscreenPageLimit = 2      // keep all fragments alive
+
+        // Bottom nav → ViewPager2
+        binding.bottomNav.setOnItemSelectedListener { item ->
+            val index = navIdToIndex[item.itemId] ?: return@setOnItemSelectedListener false
+            if (!suppressTabHistory && tabHistory.peekLast() != index) {
+                tabHistory.addLast(index)
+            }
+            binding.tabContent.setCurrentItem(index, false)
+            lastSelectedTab = index
+            true
+        }
+
+        // ViewPager2 → bottom nav sync (in case of programmatic navigation)
+        binding.tabContent.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                val menuId = indexToNavId[position] ?: return
+                suppressTabHistory = true
+                binding.bottomNav.selectedItemId = menuId
+                suppressTabHistory = false
+            }
         })
+
         setInitialTab(intent.getIntExtra(EXTRA_SELECT_TAB, TAB_HOME))
 
         if (CheckRootStatus.lastCheckResult) {
             try {
                 if (MagiskExtend.magiskSupported() &&
-                        !(MagiskExtend.moduleInstalled() || globalSPF.getBoolean("magisk_dot_show", false))
-                ) {
+                    !(MagiskExtend.moduleInstalled() || globalSPF.getBoolean("magisk_dot_show", false))) {
                     DialogHelper.confirm(this,
-                            getString(R.string.magisk_install_title),
-                            getString(R.string.magisk_install_desc),
-                            {
-                                MagiskExtend.magiskModuleInstall(this)
-                            })
-                    // 不再提示 globalSPF.edit().putBoolean("magisk_dot_show", true).apply()
+                        getString(R.string.magisk_install_title),
+                        getString(R.string.magisk_install_desc),
+                        { MagiskExtend.magiskModuleInstall(this) })
                 }
             } catch (ex: Exception) {
-                DialogHelper.alert(
-                        this,
-                        getString(R.string.sorry),
-                        "Failed to start app\n" + ex.message
-                ) {
-                    recreate()
-                }
+                DialogHelper.alert(this, getString(R.string.sorry),
+                    "Failed to start app\n" + ex.message) { recreate() }
             }
             ThermalCheckThread(this).start()
-        }
-
-        binding.actionGraph.setOnClickListener {
-            actionGraph()
-        }
-        binding.actionPower.setOnClickListener {
-            DialogPower(this).showPowerMenu()
-        }
-        binding.actionSettings.setOnClickListener {
-            startActivity(Intent(this.applicationContext, ActivityOtherSettings::class.java))
         }
     }
 
@@ -229,9 +214,6 @@ class ActivityMain : ActivityBase() {
             if (Settings.canDrawOverlays(this)) {
                 DialogMonitor(this).show()
             } else {
-                //若没有权限，提示获取
-                //val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-                //startActivity(intent);
                 val intent = Intent()
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 intent.action = "android.settings.APPLICATION_DETAILS_SETTINGS"
@@ -245,8 +227,6 @@ class ActivityMain : ActivityBase() {
 
     override fun onResume() {
         super.onResume()
-
-        // 如果距离上次检查更新超过 24 小时
         if (globalSPF.getLong(SpfConfig.GLOBAL_SPF_LAST_UPDATE, 0) + (3600 * 24 * 1000) < System.currentTimeMillis()) {
             Update().checkUpdate(this)
             globalSPF.edit().putLong(SpfConfig.GLOBAL_SPF_LAST_UPDATE, System.currentTimeMillis()).apply()
@@ -259,35 +239,32 @@ class ActivityMain : ActivityBase() {
     }
 
     private fun setInitialTab(index: Int) {
-        if (!::binding.isInitialized) {
-            return
-        }
-        val tabCount = binding.tabList.tabCount
-        val tabIndex = index.coerceIn(0, (tabCount - 1).coerceAtLeast(0))
+        if (!::binding.isInitialized) return
+        val safeIndex = index.coerceIn(0, 2)
+        val menuId = indexToNavId[safeIndex] ?: R.id.tab_home
         suppressTabHistory = true
-        binding.tabList.getTabAt(tabIndex)?.select()
+        binding.bottomNav.selectedItemId = menuId
         suppressTabHistory = false
+        binding.tabContent.setCurrentItem(safeIndex, false)
         tabHistory.clear()
-        tabHistory.addLast(tabIndex)
-        lastSelectedTab = tabIndex
+        tabHistory.addLast(safeIndex)
+        lastSelectedTab = safeIndex
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-    }
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {}
 
-    //返回键事件
     override fun onBackPressed() {
         try {
             when {
-                supportFragmentManager.backStackEntryCount > 0 -> {
-                    supportFragmentManager.popBackStack()
-                }
+                supportFragmentManager.backStackEntryCount > 0 -> supportFragmentManager.popBackStack()
                 tabHistory.size > 1 -> {
                     tabHistory.removeLast()
                     val previous = tabHistory.peekLast()
                     if (previous != null) {
                         suppressTabHistory = true
-                        binding.tabList.getTabAt(previous)?.select()
+                        val menuId = indexToNavId[previous] ?: R.id.tab_home
+                        binding.bottomNav.selectedItemId = menuId
+                        binding.tabContent.setCurrentItem(previous, false)
                         suppressTabHistory = false
                         return
                     }
@@ -306,14 +283,11 @@ class ActivityMain : ActivityBase() {
 
     public override fun onPause() {
         super.onPause()
-        if (!CheckRootStatus.lastCheckResult) {
-            finish()
-        }
+        if (!CheckRootStatus.lastCheckResult) finish()
     }
 
     override fun onDestroy() {
-        val fragmentManager = supportFragmentManager
-        fragmentManager.fragments.clear()
+        supportFragmentManager.fragments.clear()
         super.onDestroy()
     }
 }

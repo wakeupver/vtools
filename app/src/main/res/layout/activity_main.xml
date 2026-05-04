@@ -1,82 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
-    android:keepScreenOn="false">
+    android:orientation="vertical"
+    android:fitsSystemWindows="true">
 
-    <LinearLayout
-        android:id="@+id/tab_bar"
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentBottom="false"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp"
-        android:elevation="2dp">
+        android:layout_height="wrap_content"
+        app:liftOnScroll="false"
+        android:elevation="0dp">
 
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/tab_list"
-            style="@style/SceneTabLayout"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:background="@null"
-            android:minWidth="120dp" />
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/app_name"
+            app:menu="@menu/main_toolbar"
+            app:titleTextAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-
-        <ImageButton
-            android:id="@+id/action_graph"
-            style="?android:buttonBarButtonStyle"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginEnd="2dp"
-            android:alpha="0.75"
-            android:background="@drawable/menu_background"
-            android:padding="10dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/graph"
-            android:tint="?android:textColorPrimary" />
-
-        <ImageButton
-            android:id="@+id/action_power"
-            style="?android:buttonBarButtonStyle"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginEnd="2dp"
-            android:alpha="0.75"
-            android:background="@drawable/menu_background"
-            android:padding="10dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_power"
-            android:tint="?android:textColorPrimary" />
-
-        <ImageButton
-            android:id="@+id/action_settings"
-            style="?android:buttonBarButtonStyle"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginEnd="4dp"
-            android:alpha="0.75"
-            android:background="@drawable/menu_background"
-            android:padding="10dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/settings"
-            android:tint="?android:textColorPrimary" />
-
-    </LinearLayout>
+    </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/tab_content"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignParentBottom="true"
-        android:layout_below="@id/tab_bar" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:keepScreenOn="false" />
 
-</RelativeLayout>
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/Widget.Material3.BottomNavigationView"
+        app:menu="@menu/bottom_nav_menu"
+        app:labelVisibilityMode="labeled" />
+
+</LinearLayout>

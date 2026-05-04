@@ -20,23 +20,21 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Battery5Bar
+import androidx.compose.material.icons.outlined.CleaningServices
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ElectricBolt
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.Thermostat
+import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,8 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -81,11 +79,6 @@ import java.math.RoundingMode
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardDefaults
-import top.yukonga.miuix.kmp.theme.ColorSchemeMode
-import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.theme.ThemeController
 
 class FragmentHome : Fragment() {
     private var composeView: androidx.compose.ui.platform.ComposeView? = null
@@ -156,9 +149,7 @@ class FragmentHome : Fragment() {
     private suspend fun dropCaches() {
         return withContext(Dispatchers.Default) {
             KeepShellPublic.doCmdSync(
-                    "sync\n" +
-                            "echo 3 > /proc/sys/vm/drop_caches\n" +
-                            "echo 1 > /proc/sys/vm/compact_memory")
+                "sync\n" + "echo 3 > /proc/sys/vm/drop_caches\n" + "echo 1 > /proc/sys/vm/compact_memory")
         }
     }
 
@@ -167,36 +158,28 @@ class FragmentHome : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         activityManager = context!!.getSystemService(ACTIVITY_SERVICE) as ActivityManager
         batteryManager = context!!.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-
         globalSPF = context!!.getSharedPreferences(SpfConfig.GLOBAL_SPF, Context.MODE_PRIVATE)
 
         val deviceName = when (Build.VERSION.SDK_INT) {
-            31 -> "Android 12"
-            30 -> "Android 11"
-            29 -> "Android 10"
-            28 -> "Android 9"
-            27 -> "Android 8.1"
-            26 -> "Android 8.0"
-            25 -> "Android 7.0"
-            24 -> "Android 7.0"
-            23 -> "Android 6.0"
-            22 -> "Android 5.1"
-            21 -> "Android 5.0"
-            else -> "SDK(" + Build.VERSION.SDK_INT + ")"
+            31 -> "Android 12"; 30 -> "Android 11"; 29 -> "Android 10"
+            28 -> "Android 9";  27 -> "Android 8.1"; 26 -> "Android 8.0"
+            25 -> "Android 7.1"; 24 -> "Android 7.0"; 23 -> "Android 6.0"
+            22 -> "Android 5.1"; 21 -> "Android 5.0"
+            else -> "SDK(${Build.VERSION.SDK_INT})"
         }
         uiState.value = uiState.value.copy(deviceName = deviceName)
 
+        val isDark = (activity as? ActivityBase)?.themeMode?.isDarkMode ?: false
         composeView?.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
         composeView?.setContent {
-            val themeMode = (activity as? ActivityBase)?.themeMode
-            val controller = ThemeController(
-                if (themeMode?.isDarkMode == true) {
-                    ColorSchemeMode.Dark
-                } else {
-                    ColorSchemeMode.Light
-                }
-            )
-            MiuixTheme(controller = controller) {
+            val ctx = LocalContext.current
+            val colorScheme = when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isDark -> dynamicDarkColorScheme(ctx)
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S           -> dynamicLightColorScheme(ctx)
+                isDark                                                     -> darkColorScheme()
+                else                                                       -> lightColorScheme()
+            }
+            MaterialTheme(colorScheme = colorScheme) {
                 val state = uiState.value
                 HomeScreen(
                     state = state,
@@ -236,7 +219,6 @@ class FragmentHome : Fragment() {
             divider = null
             isVerticalScrollBarEnabled = true
             scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
-            // Keep visible rows balanced with the CPU panel by adding vertical inset.
             setPadding(0, 26, 0, 26)
             clipToPadding = true
             adapter = AdapterProcessMini(context).apply {
@@ -244,20 +226,16 @@ class FragmentHome : Fragment() {
                 processAdapter = this
             }
             setOnTouchListener { view, event ->
-                if (event.action == MotionEvent.ACTION_UP) {
-                    view.parent?.requestDisallowInterceptTouchEvent(false)
-                } else {
-                    view.parent?.requestDisallowInterceptTouchEvent(true)
-                }
+                if (event.action == MotionEvent.ACTION_UP) view.parent?.requestDisallowInterceptTouchEvent(false)
+                else view.parent?.requestDisallowInterceptTouchEvent(true)
                 false
             }
             onItemClickListener = android.widget.AdapterView.OnItemClickListener { parent, _, index, _ ->
                 val item = parent.getItemAtPosition(index) as ProcessInfo?
-                val intent = Intent(context, ActivityProcess::class.java).apply {
+                startActivity(Intent(context, ActivityProcess::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     putExtra("name", item?.name)
-                }
-                startActivity(intent)
+                })
             }
         }
     }
@@ -274,13 +252,7 @@ class FragmentHome : Fragment() {
             onItemClickListener = android.widget.AdapterView.OnItemClickListener { _, _, position, _ ->
                 CpuFrequencyUtil.getCoregGovernorParams(position)?.run {
                     val msg = StringBuilder()
-                    for (param in this) {
-                        msg.append("\n")
-                        msg.append(param.key)
-                        msg.append("：")
-                        msg.append(param.value)
-                        msg.append("\n")
-                    }
+                    for (param in this) { msg.append("\n${param.key}：${param.value}\n") }
                     activity?.let { DialogHelper.helpInfo(it, "Governor Params", msg.toString()) }
                 }
             }
@@ -297,9 +269,7 @@ class FragmentHome : Fragment() {
 
     private fun onMemoryCompact(isLong: Boolean) {
         uiState.value = uiState.value.copy(zramInfoText = getString(R.string.please_wait))
-        if (!isLong) {
-            Toast.makeText(context!!, R.string.home_shell_begin, Toast.LENGTH_SHORT).show()
-        }
+        if (!isLong) Toast.makeText(context!!, R.string.home_shell_begin, Toast.LENGTH_SHORT).show()
         GlobalScope.launch(Dispatchers.Main) {
             val result = forceKSWAPD(if (isLong) 2 else 1)
             Scene.toast(result, Toast.LENGTH_SHORT)
@@ -308,74 +278,46 @@ class FragmentHome : Fragment() {
 
     private fun onOpenHelp() {
         try {
-            startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse("http://vtools.omarea.com/"))
-            )
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("http://vtools.omarea.com/")))
         } catch (ex: Exception) {
             Toast.makeText(context!!, R.string.home_browser_error, Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun onBatteryEdit() {
-        DialogElectricityUnit().showDialog(context!!)
-    }
-
-    private fun onMemoryCardClick() {
-        startActivity(Intent(context, ActivitySwap::class.java))
-    }
-
+    private fun onBatteryEdit() { DialogElectricityUnit().showDialog(context!!) }
+    private fun onMemoryCardClick() { startActivity(Intent(context, ActivitySwap::class.java)) }
     private fun onBatteryCardClick() {
-        if (GlobalStatus.batteryStatus == BatteryManager.BATTERY_STATUS_DISCHARGING) {
+        if (GlobalStatus.batteryStatus == BatteryManager.BATTERY_STATUS_DISCHARGING)
             startActivity(Intent(context, ActivityPowerUtilization::class.java))
-        } else {
-            startActivity(Intent(context, ActivityCharge::class.java))
-        }
+        else startActivity(Intent(context, ActivityCharge::class.java))
     }
 
     override fun onResume() {
         super.onResume()
-        if (isDetached) {
-            return
-        }
+        if (isDetached) return
         activity!!.title = getString(R.string.app_name)
-
-        maxFreqList.clear()
-        minFreqList.clear()
-        stopTimer()
-        updateTick = 0
+        maxFreqList.clear(); minFreqList.clear()
+        stopTimer(); updateTick = 0
         timer = Timer().apply {
-            schedule(object : TimerTask() {
-                override fun run() {
-                    updateInfo()
-                }
-            }, 0, 1500)
+            schedule(object : TimerTask() { override fun run() { updateInfo() } }, 0, 1500)
         }
     }
 
     private val coreCount = object : TripleCacheValue(Scene.context, "CoreCount") {
-        override fun initValue(): String {
-            return "" + CpuFrequencyUtil.coreCount
-        }
+        override fun initValue(): String = "" + CpuFrequencyUtil.coreCount
     }.toInt()
 
-    private fun formatNumber(value: Double): String {
-        var bd = BigDecimal(value)
-        bd = bd.setScale(1, RoundingMode.HALF_UP)
-        return bd.toString()
-    }
+    private fun formatNumber(value: Double): String =
+        BigDecimal(value).setScale(1, RoundingMode.HALF_UP).toString()
 
     @SuppressLint("SetTextI18n")
     private fun updateRamInfo() {
         try {
-            val info = ActivityManager.MemoryInfo().apply {
-                activityManager.getMemoryInfo(this)
-            }
+            val info = ActivityManager.MemoryInfo().apply { activityManager.getMemoryInfo(this) }
             val totalMem = (info.totalMem / 1024 / 1024f).toInt()
             val availMem = (info.availMem / 1024 / 1024f).toInt()
-
             val swapInfo = KeepShellPublic.doCmdSync("free -m | grep Swap")
-            var swapTotal = 0
-            var swapUsed = 0
+            var swapTotal = 0; var swapUsed = 0
             if (swapInfo.contains("Swap")) {
                 try {
                     val swapInfos = swapInfo.substring(swapInfo.indexOf(" "), swapInfo.lastIndexOf(" ")).trim()
@@ -383,42 +325,24 @@ class FragmentHome : Fragment() {
                         swapTotal = swapInfos.substring(0, swapInfos.indexOf(" ")).trim().toInt()
                         swapUsed = swapInfos.substring(swapInfos.indexOf(" ")).trim().toInt()
                     }
-                } catch (ex: java.lang.Exception) {
-                }
+                } catch (ex: Exception) {}
             }
-
             myHandler.post {
                 val ramInfoText = "${((totalMem - availMem) * 100 / totalMem)}% (${totalMem / 1024 + 1}GB)"
                 val zramText = if (swapTotal > 0) {
-                    if (swapTotal > 99) {
-                        "${(swapUsed * 100.0 / swapTotal).toInt()}% (${formatNumber(swapTotal / 1024.0)}GB)"
-                    } else {
-                        "${(swapUsed * 100.0 / swapTotal).toInt()}% (${swapTotal}MB)"
-                    }
-                } else {
-                    "0% (0MB)"
-                }
-                uiState.value = uiState.value.copy(
-                    ramInfoText = ramInfoText,
-                    zramInfoText = zramText
-                )
+                    if (swapTotal > 99) "${(swapUsed * 100.0 / swapTotal).toInt()}% (${formatNumber(swapTotal / 1024.0)}GB)"
+                    else "${(swapUsed * 100.0 / swapTotal).toInt()}% (${swapTotal}MB)"
+                } else "0% (0MB)"
+                uiState.value = uiState.value.copy(ramInfoText = ramInfoText, zramInfoText = zramText)
                 ramStatView?.setData(totalMem.toFloat(), availMem.toFloat())
                 swapStatView?.setData(swapTotal.toFloat(), (swapTotal - swapUsed).toFloat())
-                memoryTotalView?.setData(
-                        (totalMem + swapTotal).toFloat(), availMem + (swapTotal - swapUsed).toFloat(), totalMem.toFloat()
-                )
+                memoryTotalView?.setData((totalMem + swapTotal).toFloat(), (availMem + swapTotal - swapUsed).toFloat(), totalMem.toFloat())
             }
-        } catch (ex: Exception) {
-        }
+        } catch (ex: Exception) {}
     }
 
-    /**
-     * dp转换成px
-     */
-    private fun dp2px(dpValue: Float): Int {
-        val scale = context!!.resources.displayMetrics.density
-        return (dpValue * scale + 0.5f).toInt()
-    }
+    private fun dp2px(dpValue: Float): Int =
+        (dpValue * context!!.resources.displayMetrics.density + 0.5f).toInt()
 
     private fun elapsedRealtimeStr(): String {
         val timer = SystemClock.elapsedRealtime() / 1000
@@ -426,12 +350,10 @@ class FragmentHome : Fragment() {
     }
 
     private var updateTick = 0
-
     private var batteryCurrentNow = 0L
 
     private fun gpuFreqToMhz(value: String): String {
-        val v = value.trim()
-        if (v.isEmpty()) return ""
+        val v = value.trim(); if (v.isEmpty()) return ""
         return if (v.length > 6) v.substring(0, v.length - 6) else v
     }
 
@@ -440,25 +362,17 @@ class FragmentHome : Fragment() {
         val cores = ArrayList<CpuCoreInfo>()
         for (coreIndex in 0 until coreCount) {
             val core = CpuCoreInfo(coreIndex)
-
             core.currentFreq = CpuFrequencyUtil.getCurrentFrequency("cpu$coreIndex")
-            if (!maxFreqList.containsKey(coreIndex) || (core.currentFreq != "" && maxFreqList[coreIndex].isNullOrEmpty())) {
+            if (!maxFreqList.containsKey(coreIndex) || (core.currentFreq != "" && maxFreqList[coreIndex].isNullOrEmpty()))
                 maxFreqList[coreIndex] = CpuFrequencyUtil.getCurrentMaxFrequency("cpu$coreIndex")
-            }
             core.maxFreq = maxFreqList[coreIndex]
-
-            if (!minFreqList.containsKey(coreIndex) || (core.currentFreq != "" && minFreqList[coreIndex].isNullOrEmpty())) {
+            if (!minFreqList.containsKey(coreIndex) || (core.currentFreq != "" && minFreqList[coreIndex].isNullOrEmpty()))
                 minFreqList[coreIndex] = CpuFrequencyUtil.getCurrentMinFrequency("cpu$coreIndex")
-            }
             core.minFreq = minFreqList[coreIndex]
             cores.add(core)
         }
         val loads = cpuLoadUtils.cpuLoad
-        for (core in cores) {
-            if (loads.containsKey(core.coreIndex)) {
-                core.loadRatio = loads[core.coreIndex]!!
-            }
-        }
+        for (core in cores) { if (loads.containsKey(core.coreIndex)) core.loadRatio = loads[core.coreIndex]!! }
 
         val gpuFreq = GpuUtils.getGpuFreq() + "Mhz"
         val gpuLoad = GpuUtils.getGpuLoad()
@@ -478,34 +392,22 @@ class FragmentHome : Fragment() {
         if (updateTick == 0 || updateTick == 3) {
             GlobalScope.launch(Dispatchers.IO) {
                 val processList = processUtils.allProcess
-                myHandler.post {
-                    processAdapter?.setList(processList)
-                }
+                myHandler.post { processAdapter?.setList(processList) }
             }
         }
-
         myHandler.post {
             try {
-                val batteryNow = if (batteryCurrentNow != Long.MIN_VALUE && batteryCurrentNow != Long.MAX_VALUE) {
+                val batteryNow = if (batteryCurrentNow != Long.MIN_VALUE && batteryCurrentNow != Long.MAX_VALUE)
                     (batteryCurrentNow / globalSPF.getInt(SpfConfig.GLOBAL_SPF_CURRENT_NOW_UNIT, SpfConfig.GLOBAL_SPF_CURRENT_NOW_UNIT_DEFAULT)).toString() + "mA"
-                } else {
-                    "--"
-                }
+                else "--"
                 val batteryCapacityText = "$batteryCapacity%  ${batteryVoltage}v"
                 val batteryTempText = "${temperature}°C"
-
                 val gpuLoadText = getString(R.string.home_utilization) + "$gpuLoad%"
                 val gpuGovernorText = gpuGovernor
-                val gpuFreqRangeText = if (gpuMinFreq.isNotEmpty() && gpuMaxFreq.isNotEmpty()) {
-                    "${gpuFreqToMhz(gpuMinFreq)} - ${gpuFreqToMhz(gpuMaxFreq)} MHz"
-                } else {
-                    ""
-                }
-                val cpuTotalLoadText = if (loads.containsKey(-1)) {
-                    getString(R.string.home_utilization) + loads[-1]!!.toInt().toString() + "%"
-                } else {
-                    "--"
-                }
+                val gpuFreqRangeText = if (gpuMinFreq.isNotEmpty() && gpuMaxFreq.isNotEmpty())
+                    "${gpuFreqToMhz(gpuMinFreq)} - ${gpuFreqToMhz(gpuMaxFreq)} MHz" else ""
+                val cpuTotalLoadText = if (loads.containsKey(-1))
+                    getString(R.string.home_utilization) + loads[-1]!!.toInt().toString() + "%" else "--"
 
                 uiState.value = uiState.value.copy(
                     swapCached = "" + (memInfo.swapCached / 1024) + "MB",
@@ -519,35 +421,18 @@ class FragmentHome : Fragment() {
                     gpuGovernorText = gpuGovernorText,
                     gpuFreqRangeText = gpuFreqRangeText,
                     cpuTotalLoad = cpuTotalLoadText,
-                    cpuPlatform = platform.uppercase(Locale.getDefault()) + " (" + coreCount + " Cores)",
+                    cpuPlatform = platform.uppercase(Locale.getDefault()) + " ($coreCount Cores)",
                     cpuTemperatureText = cpuTemperatureText
                 )
-
-                if (gpuLoad > -1) {
-                    gpuChartView?.setData(100.toFloat(), (100 - gpuLoad).toFloat())
-                }
-                if (loads.containsKey(-1)) {
-                    cpuChartView?.setData(100.toFloat(), (100 - loads[-1]!!.toInt()).toFloat())
-                }
+                if (gpuLoad > -1) gpuChartView?.setData(100f, (100 - gpuLoad).toFloat())
+                if (loads.containsKey(-1)) cpuChartView?.setData(100f, (100 - loads[-1]!!.toInt()).toFloat())
 
                 if (cpuAdapter == null) {
                     val layoutHeight = when {
-                        cores.size < 6 -> {
-                            cpuGridColumns.intValue = 2
-                            dp2px(85 * 2F)
-                        }
-                        cores.size > 12 -> {
-                            cpuGridColumns.intValue = 4
-                            dp2px(85 * 4F)
-                        }
-                        cores.size > 8 -> {
-                            cpuGridColumns.intValue = 4
-                            dp2px(85 * 3F)
-                        }
-                        else -> {
-                            cpuGridColumns.intValue = 4
-                            dp2px(85 * 2F)
-                        }
+                        cores.size < 6  -> { cpuGridColumns.intValue = 2; dp2px(85 * 2F) }
+                        cores.size > 12 -> { cpuGridColumns.intValue = 4; dp2px(85 * 4F) }
+                        cores.size > 8  -> { cpuGridColumns.intValue = 4; dp2px(85 * 3F) }
+                        else            -> { cpuGridColumns.intValue = 4; dp2px(85 * 2F) }
                     }
                     cpuGridHeightDp.intValue = (layoutHeight / resources.displayMetrics.density).toInt()
                     cpuCoreListView?.numColumns = cpuGridColumns.intValue
@@ -556,65 +441,43 @@ class FragmentHome : Fragment() {
                 } else {
                     cpuAdapter?.setData(cores)
                 }
-            } catch (ex: Exception) {
-            }
+            } catch (ex: Exception) {}
         }
         updateTick++
-        if (updateTick > 5) {
-            updateTick = 0
-            minFreqList.clear()
-            maxFreqList.clear()
-        }
+        if (updateTick > 5) { updateTick = 0; minFreqList.clear(); maxFreqList.clear() }
     }
 
     private fun stopTimer() {
-        if (this.timer != null) {
-            updateTick = 0
-            timer!!.cancel()
-            timer = null
-        }
+        timer?.cancel(); timer = null; updateTick = 0
     }
 
-    // 选择开关核心
     private fun setCpuOnline() {
-        val activity = (activity as ActivityBase?)
-        if (activity != null) {
-            val options = ArrayList<SelectItem>().apply {
-                for (i in 0 until coreCount) {
-                    add(SelectItem().apply {
-                        title = "CPU $i"
-                        value = "" + i
-                        selected = CpuFrequencyUtil.getCoreOnlineState(i)
-                    })
+        val activity = (activity as ActivityBase?) ?: return
+        val options = ArrayList<SelectItem>().apply {
+            for (i in 0 until coreCount) add(SelectItem().apply {
+                title = "CPU $i"; value = "$i"
+                selected = CpuFrequencyUtil.getCoreOnlineState(i)
+            })
+        }
+        DialogItemChooser(activity.themeMode.isDarkMode, options, true, object : DialogItemChooser.Callback {
+            override fun onConfirm(selected: List<SelectItem>, status: BooleanArray) {
+                if (status.isNotEmpty() && status.find { it } != null) {
+                    status.forEachIndexed { index, b -> CpuFrequencyUtil.setCoreOnlineState(index, b); updateInfo() }
+                } else {
+                    Toast.makeText(activity, getString(R.string.home_core_required), Toast.LENGTH_SHORT).show()
                 }
             }
-            DialogItemChooser(activity.themeMode.isDarkMode, options, true, object : DialogItemChooser.Callback {
-                override fun onConfirm(selected: List<SelectItem>, status: BooleanArray) {
-                    if (status.isNotEmpty() && status.find { it } != null) {
-                        status.forEachIndexed { index, b ->
-                            CpuFrequencyUtil.setCoreOnlineState(index, b)
-                            updateInfo()
-                        }
-                    } else {
-                        Toast.makeText(activity,  getString(R.string.home_core_required), Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }, true)
-            .setTitle(getString(R.string.home_core_switch))
+        }, true).setTitle(getString(R.string.home_core_switch))
             .show(activity.supportFragmentManager, "home-cpu-control")
-        }
     }
 
-    override fun onPause() {
-        stopTimer()
-        super.onPause()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        composeView = null
-    }
+    override fun onPause() { stopTimer(); super.onPause() }
+    override fun onDestroyView() { super.onDestroyView(); composeView = null }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Composable helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun HomeSectionCard(
@@ -623,21 +486,16 @@ private fun HomeSectionCard(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val cardModifier = if (clickable && onClick != null) {
-        modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-    } else {
-        modifier
-    }
-
     Card(
-        modifier = cardModifier,
-        cornerRadius = 16.dp,
-        insideMargin = androidx.compose.foundation.layout.PaddingValues(12.dp),
-        colors = CardDefaults.defaultColors()
+        modifier = if (clickable && onClick != null)
+            modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick) else modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        content()
+        Box(modifier = Modifier.padding(12.dp)) { content() }
     }
 }
 
@@ -667,475 +525,204 @@ private fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(8.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        // ── RAM card ──────────────────────────────────────────────────────────
         HomeSectionCard(
             modifier = Modifier.fillMaxWidth(),
-            clickable = true,
-            onClick = onMemoryClick
+            clickable = true, onClick = onMemoryClick
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier.size(100.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AndroidView(
-                        modifier = Modifier.fillMaxSize(),
-                        factory = { context ->
-                            MemoryChartView(context).apply {
-                                alpha = 0.7f
-                                onMemoryChartReady(this)
-                            }
-                        }
-                    )
-                    Text(
-                        text = "RAM",
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                    )
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(96.dp), contentAlignment = Alignment.Center) {
+                    AndroidView(modifier = Modifier.fillMaxSize(), factory = { ctx ->
+                        MemoryChartView(ctx).apply { alpha = 0.7f; onMemoryChartReady(this) }
+                    })
+                    Text("RAM", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    // Physical RAM row
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            AndroidView(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp),
-                                factory = { context ->
-                                    RamBarView(context).apply {
-                                        alpha = 0.4f
-                                        onRamStatReady(this)
-                                    }
-                                }
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            AndroidView(modifier = Modifier.fillMaxWidth().height(6.dp), factory = { ctx ->
+                                RamBarView(ctx).apply { alpha = 0.5f; onRamStatReady(this) }
+                            })
+                            Spacer(Modifier.height(4.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Physical",
-                                    style = MiuixTheme.textStyles.footnote2,
-                                    color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
-                                    modifier = Modifier.width(64.dp)
-                                )
-                                Text(
-                                    text = state.ramInfoText,
-                                    style = MiuixTheme.textStyles.footnote2,
-                                    color = MiuixTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                Text("Physical ", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(60.dp))
+                                Text(state.ramInfoText, style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
                             }
                         }
                         IconButton(onClick = onMemoryClear, modifier = Modifier.size(28.dp)) {
-                            Icon(
-                                painter = painterResource(R.drawable.icon_clear),
-                                contentDescription = null,
-                                tint = MiuixTheme.colorScheme.onSurface
-                            )
+                            Icon(Icons.Outlined.CleaningServices, null,
+                                tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(Modifier.height(8.dp))
+                    // Virtual / swap row
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            AndroidView(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp),
-                                factory = { context ->
-                                    RamBarView(context).apply {
-                                        alpha = 0.4f
-                                        onSwapStatReady(this)
-                                    }
-                                }
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            AndroidView(modifier = Modifier.fillMaxWidth().height(6.dp), factory = { ctx ->
+                                RamBarView(ctx).apply { alpha = 0.5f; onSwapStatReady(this) }
+                            })
+                            Spacer(Modifier.height(4.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Virtual",
-                                    style = MiuixTheme.textStyles.footnote2,
-                                    color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
-                                    modifier = Modifier.width(64.dp)
-                                )
-                                Text(
-                                    text = state.zramInfoText,
-                                    style = MiuixTheme.textStyles.footnote2,
-                                    color = MiuixTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                Text("Virtual ", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(60.dp))
+                                Text(state.zramInfoText, style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
                             }
                         }
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .combinedClickable(
-                                    onClick = onMemoryCompact,
-                                    onLongClick = onMemoryCompactLong
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.icon_harddisk),
-                                contentDescription = null,
-                                tint = MiuixTheme.colorScheme.onSurface
-                            )
+                        Box(modifier = Modifier.size(28.dp)
+                            .combinedClickable(onClick = onMemoryCompact, onLongClick = onMemoryCompactLong),
+                            contentAlignment = Alignment.Center) {
+                            Icon(Icons.Outlined.Storage, null,
+                                tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                         }
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.alpha(0.75f)
-                    ) {
-                        Text(
-                            text = "SwapCached ",
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
-                        Text(
-                            text = state.swapCached,
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = MiuixTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = "Dirty ",
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
-                        Text(
-                            text = state.dirty,
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = MiuixTheme.colorScheme.onSurface
-                        )
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.alpha(0.7f)) {
+                        Text("SwapCached ", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(state.swapCached, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        Text("Dirty ", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(state.dirty, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
         }
 
+        // ── GPU card ──────────────────────────────────────────────────────────
         HomeSectionCard(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier.size(100.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AndroidView(
-                            modifier = Modifier.fillMaxSize(),
-                            factory = { context ->
-                                CpuChartView(context).apply {
-                                    onGpuChartReady(this)
-                                }
-                            }
-                        )
-                        Text(
-                            text = "GPU",
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(modifier = Modifier.size(96.dp), contentAlignment = Alignment.Center) {
+                        AndroidView(modifier = Modifier.fillMaxSize(), factory = { ctx ->
+                            CpuChartView(ctx).apply { onGpuChartReady(this) }
+                        })
+                        Text("GPU", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    AndroidView(
-                        modifier = Modifier.size(1.dp),
-                        factory = { context ->
-                            android.widget.FrameLayout(context).apply {
-                                alpha = 0.05f
-                                onGpuInfoContainerReady(this)
-                            }
-                        }
-                    )
+                    AndroidView(modifier = Modifier.size(1.dp), factory = { ctx ->
+                        android.widget.FrameLayout(ctx).apply { alpha = 0.05f; onGpuInfoContainerReady(this) }
+                    })
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = state.gpuFreq,
-                        style = MiuixTheme.textStyles.body1,
-                        color = MiuixTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = state.gpuLoadText,
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                    )
+                    Text(state.gpuFreq, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.height(4.dp))
+                    Text(state.gpuLoadText, style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (state.gpuGovernorText.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = state.gpuGovernorText,
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(state.gpuGovernorText, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    if (state.gpuFreqRangeText.isNotEmpty()) {
-                        Text(
-                            text = state.gpuFreqRangeText,
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
-                    }
+                    if (state.gpuFreqRangeText.isNotEmpty())
+                        Text(state.gpuFreqRangeText, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (state.gpuInfoText.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = state.gpuInfoText,
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(state.gpuInfoText, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         }
 
+        // ── CPU + Processes card ──────────────────────────────────────────────
         HomeSectionCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .padding(start = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AndroidView(
-                        modifier = Modifier.weight(1f),
-                        factory = { context ->
-                            processListViewFactory(context)
+                Row(modifier = Modifier.fillMaxWidth().height(140.dp).padding(start = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    AndroidView(modifier = Modifier.weight(1f), factory = { processListViewFactory(it) })
+                    Box(modifier = Modifier.width(1.dp).height(120.dp)
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)))
+                    Column(modifier = Modifier.weight(1f)
+                        .combinedClickable(onClick = onCpuClick, onLongClick = null),
+                        horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 6.dp, end = 6.dp),
+                            horizontalArrangement = Arrangement.End) {
+                            Text(state.cpuTemperatureText, style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(120.dp)
-                            .background(MiuixTheme.colorScheme.onSurfaceContainerVariant.copy(alpha = 0.3f))
-                    )
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .combinedClickable(onClick = onCpuClick, onLongClick = null),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 6.dp, top = 6.dp, end = 6.dp, bottom = 0.dp),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            Text(
-                                text = state.cpuTemperatureText,
-                                style = MiuixTheme.textStyles.footnote2,
-                                color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                            )
+                        Box(modifier = Modifier.height(85.dp).width(125.dp), contentAlignment = Alignment.Center) {
+                            AndroidView(modifier = Modifier.fillMaxSize(), factory = { ctx ->
+                                CpuBigBarView(ctx).apply { onCpuChartReady(this) }
+                            })
+                            Text("CPU", style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Box(
-                            modifier = Modifier
-                                .height(85.dp)
-                                .width(125.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            AndroidView(
-                                modifier = Modifier.fillMaxSize(),
-                                factory = { context ->
-                                    CpuBigBarView(context).apply {
-                                        onCpuChartReady(this)
-                                    }
-                                }
-                            )
-                            Text(
-                                text = "CPU",
-                                style = MiuixTheme.textStyles.footnote1,
-                                color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = state.cpuPlatform,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 6.dp)
-                        )
-                        Text(
-                            text = state.cpuTotalLoad,
-                            style = MiuixTheme.textStyles.footnote2,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(state.cpuPlatform, style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 6.dp))
+                        Text(state.cpuTotalLoad, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(cpuGridHeight.dp)
-                        .padding(start = 0.dp, end = 0.dp)
-                ) {
-                    AndroidView(
-                        modifier = Modifier.fillMaxSize(),
-                        factory = { context ->
-                            cpuGridViewFactory(context)
-                        }
-                    )
+                Spacer(Modifier.height(8.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(cpuGridHeight.dp)) {
+                    AndroidView(modifier = Modifier.fillMaxSize(), factory = { cpuGridViewFactory(it) })
                 }
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            HomeSectionCard(
-                modifier = Modifier.weight(1f),
-                clickable = true,
-                onClick = onBatteryClick
-            ) {
+        // ── Battery + Device row ──────────────────────────────────────────────
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            HomeSectionCard(modifier = Modifier.weight(1f), clickable = true, onClick = onBatteryClick) {
                 Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                            .padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_power_supply),
-                            contentDescription = null,
-                            tint = MiuixTheme.colorScheme.onSurfaceContainerVariant,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = state.batteryNow,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f)
-                        )
+                    InfoRow(Icons.Outlined.ElectricBolt, state.batteryNow) {
                         IconButton(onClick = onBatteryEdit, modifier = Modifier.size(28.dp)) {
-                            Icon(
-                                painter = painterResource(R.drawable.edit),
-                                contentDescription = null,
-                                tint = MiuixTheme.colorScheme.primary
-                            )
+                            Icon(Icons.Outlined.Edit, null,
+                                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                         }
                     }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                            .padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_capacity),
-                            contentDescription = null,
-                            tint = MiuixTheme.colorScheme.onSurfaceContainerVariant,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = state.batteryCapacity,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurface
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                            .padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_temperature),
-                            contentDescription = null,
-                            tint = MiuixTheme.colorScheme.onSurfaceContainerVariant,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = state.batteryTemperature,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurface
-                        )
-                    }
+                    InfoRow(Icons.Outlined.Battery5Bar, state.batteryCapacity)
+                    InfoRow(Icons.Outlined.Thermostat, state.batteryTemperature)
                 }
             }
-
             HomeSectionCard(modifier = Modifier.weight(1f)) {
                 Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                            .padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.icon_android),
-                            contentDescription = null,
-                            tint = MiuixTheme.colorScheme.onSurfaceContainerVariant,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = state.deviceName,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                            .padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_clock),
-                            contentDescription = null,
-                            tint = MiuixTheme.colorScheme.onSurfaceContainerVariant,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.home_alive),
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = state.runningTime,
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
+                    InfoRow(Icons.Outlined.PhoneAndroid, state.deviceName)
+                    InfoRow(Icons.Outlined.Timer, "${stringResource(R.string.home_alive)} ${state.runningTime}")
+                    InfoRow(
+                        icon = Icons.Outlined.Language,
+                        text = stringResource(R.string.home_official_site),
+                        iconTint = MaterialTheme.colorScheme.primary,
+                        rowModifier = Modifier.fillMaxWidth().height(40.dp)
                             .padding(horizontal = 10.dp)
-                            .combinedClickable(onClick = onOpenHelp, onLongClick = null),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.icon_global),
-                            contentDescription = null,
-                            tint = MiuixTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.home_official_site),
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                        )
-                    }
+                            .combinedClickable(onClick = onOpenHelp, onLongClick = null)
+                    )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(Modifier.height(4.dp))
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun InfoRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    iconTint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    rowModifier: Modifier = Modifier.fillMaxWidth().height(40.dp).padding(horizontal = 10.dp),
+    trailing: (@Composable () -> Unit)? = null
+) {
+    Row(modifier = rowModifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = iconTint, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+        trailing?.invoke()
     }
 }
